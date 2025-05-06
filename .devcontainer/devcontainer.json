@@ -1,4 +1,0 @@
-{
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "features": {"ghcr.io/hspaans/devcontainer-features/pytest:1": {}, "ghcr.io/devcontainers-extra/features/circleci-cli:1": {}}
-}
