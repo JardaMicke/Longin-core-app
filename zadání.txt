@@ -1,0 +1,441 @@
+V přiloženém souboru basics UI jen návrh UI pro chat s AI modelem. Na pravé straně jsou čtverce a obdélníky znázorňující záložky ostatních uživatelských rozhraní dalších funkcionalit. UI musí mít možnosti Windows okna minimalizace maximalizace zavření okna křížkem, scrollování v okně s textem i ve spodním menším okně pro zadání otázky. Aktivní budou pouze 2 záložky:1. chat s AI modelem jako homepage, 2. Settings - Ve které bude prozatím možnost: a- tlačítkem vytvořit lokální soubor Pro všechny nejčastější Poskytovatele cloudových AI modelů A jejich API klíče nebo url adresy lokálních modelů. Defaultně bude nastavena url pro LM studio které používá open AI API "http://127.0.0.1:1234" a Lokální olama server, b- Pomocí dropdown menubude moci uživatel vybrat stupeň autonomity Na výběr budou 3 přičemž 3 stupeň bude vše je automatické bez jakéhokoliv potvrzování uživatelem Včetně užití kteréhokoliv nástroje který je k dispozici. Na výběr by měly být všechnymodely které má uživatel stažené na disku Což se dá zjistit jednoduchým volánímč přez API.Základem bude python SDK a postgress db s indexováním dat pro kontext vláken rozhovorů a projektů a MCP plugyn pro její ovládání. Součástí aplikace bude klient MCP serveru s pluginy umožňujícími AI modelům využívat nástroje: hýbání kurzorem myši, možnost kliknout levým í pravým tlačítkem, používat klávesnici a vytvářet a analyzovat screenshoty jako zpětnou vazbu na prováděné akce a ukládané do složky data v kořenovém adresáři s maximálním počtem 10, poté se při každém screenshotu ten nejstarší pořízený Modelem smaže. Analýza screenshotu bude fungovat jako feedback na akce AI modelu akce nebo kalibraci pohybu myši po obraze A ověření její polohy, ve čtení obsahu otevřeného souboru na ploše a tak dále, Všechny aktuálně načtené AI modely by měly díky tomu ovládat počítač jako uživatel na základě příkazů v chatu Nebo potřeby při plnění úkolů. Dalším nástrojem budeu schopnost ovládat postgres SQL a Docker desktop které hned na začátku Každého nového projektu nebo nového vlákna chatu použije pro spuštění databáze k danému projektu nebo vláknu rozhovoru v kontejneru a její automatické nastavení včetně tabulek pro uložení dat V takovém formátu aby vše odpovídalo standardům. Vyber nejúčinnější způsob zaznamenávání dat AI modely a jeho nejsnazší způsob vyhledávání a implementuj ho do této databáze i s manifesty plugynů a plugyny na používání. Veškerá data budou ukládána do databáze po malých kouscích Kvůli udržování stabilního zaplnění kontextu. Díky databázi a správě kontextuového okna aktuálního modelu by nikdy nemělo dojít k přeplnění kontextového okna. c- U aktuálně Načteného modelu či modelů možnost tlačítkem přidat instrukce Platné jen pouze pro něj. -d Možnost přidání dalšího modelu do chatu S vlastním providerem i vlastními instrukcemi. Databázea veškeré kontejnery budou vždy spouštěny a vypínány společně s aplikací. Základní jádro programu by mělobýt spouštěnou v 1 společném kontejneru dvojklikem na spouštěcí soubor ve Windows a běžet lokálně S UI v prohlížeči na localhostu. backend psaný v pythonu a frontend v javascriptu HTMLa CSS. Barvy celé aplikace budou dle návrhu. A vytvoř docker compose soubor pro zpuštění celé aplikace lokálně v kontejneru včetně databáze na všech pluginů v MPC serveru a spouštěcí soubor pro Windows který zpustí kontejner a celou aplikaci
+
+Návrh aplikace L.O.N.G.I.N. pro interakci s AI modely
+Tato zpráva představuje detailní návrh aplikace nazvané L.O.N.G.I.N. (Local Optimized Natural-language Guided Interactive Network) určené pro interakci s jazykovými modely a jejich využití k automatizaci úloh. Aplikace poskytuje intuitivní uživatelské rozhraní pro komunikaci s AI modely a jejich konfiguraci, přičemž umožňuje těmto modelům ovládat počítač jako běžný uživatel.
+
+Architektura a základní komponenty
+Aplikace je navržena jako modulární systém, který se skládá z několika základních komponent, jež spolu komunikují a tvoří ucelený ekosystém pro práci s AI modely.
+
+Kontejnerizovaná architektura
+Pro zajištění přenositelnosti a snadného nasazení bude aplikace využívat Docker kontejnery. Hlavní komponenty budou běžet v oddělených kontejnerech:
+
+Frontend kontejner: Obsahuje webové rozhraní aplikace dostupné přes lokální prohlížeč
+
+Backend kontejner: Python server zpracovávající požadavky, komunikující s AI modely a řídící další komponenty
+
+MCP server kontejner: Obsahuje Model Context Protocol server s pluginy pro systémové operace
+
+PostgreSQL kontejner: Databázový server s pgvector rozšířením pro ukládání a vyhledávání vektorových dat
+
+Tato architektura zajišťuje izolaci jednotlivých součástí a zjednodušuje správu závislostí. Vše bude koordinováno pomocí Docker Compose, což umožní spuštění jedním příkazem nebo dvojklikem na připravený spouštěcí soubor ve Windows.
+
+Backend a Model Context Protocol
+Jádrem aplikace je backend napsaný v Pythonu, který řídí komunikaci mezi uživatelským rozhraním a AI modely. Pro efektivní řízení interakcí mezi modely a systémem je implementován Model Context Protocol (MCP) server, který poskytuje standardizované rozhraní pro různé nástroje a funkce.
+
+MCP server je navržen jako plugin-based systém využívající knihovnu pluggy, což umožňuje snadné rozšiřování funkcionalit přidáváním nových pluginů. Základní sada pluginů zahrnuje:
+
+Control Plugin: Umožňuje AI modelům ovládat myš a klávesnici
+
+Screenshot Plugin: Zajišťuje pořizování a správu snímků obrazovky
+
+OCR Plugin: Analyzuje obsah screenshotů a extrahuje z nich text
+
+Database Plugin: Řídí interakci s PostgreSQL databází
+
+Docker Plugin: Umožňuje správu Docker kontejnerů pro různé účely
+
+python
+import pluggy
+
+class MCPHookSpecs:
+    @pluggy.hookspec
+    def control_mouse(self, x, y, action):
+        """Ovládání myši"""
+        pass
+    
+    @pluggy.hookspec
+    def control_keyboard(self, keys, action):
+        """Ovládání klávesnice"""
+        pass
+    
+    # Další hook specifikace...
+Databázový systém s vektorovým indexováním
+Pro efektivní ukládání a vyhledávání kontextových dat je využit PostgreSQL s rozšířením pgvector, které umožňuje ukládat a indexovat vektorové embeddings. Toto řešení je ideální pro sémantické vyhledávání a správu velkých objemů textových dat generovaných AI modely.
+
+Databázové schéma zahrnuje následující hlavní tabulky:
+
+sql
+CREATE TABLE IF NOT EXISTS conversations (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id),
+    title VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id SERIAL PRIMARY KEY,
+    conversation_id INTEGER REFERENCES conversations(id),
+    role VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS embeddings (
+    id SERIAL PRIMARY KEY,
+    message_id INTEGER REFERENCES messages(id),
+    embedding vector(1536),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+Pro optimalizaci vyhledávání je vytvořen speciální index:
+
+sql
+CREATE INDEX IF NOT EXISTS idx_embeddings_vector ON embeddings USING ivfflat (embedding vector_cosine_ops);
+Uživatelské rozhraní a jeho funkce
+Uživatelské rozhraní aplikace je navrženo podle dodaného vizuálního návrhu s důrazem na jednoduchost a funkčnost. Zachovává charakteristické zelené a černé barevné schéma.
+
+Hlavní obrazovka a chat
+Hlavní obrazovka aplikace obsahuje chat rozhraní pro komunikaci s AI modely. Zahrnuje následující prvky:
+
+Horní lišta s ovládacími prvky okna (minimalizace, maximalizace, zavření)
+
+Hlavní oblast pro zobrazení konverzace s možností scrollování
+
+Vstupní pole pro zadávání otázek a příkazů
+
+Postranní panel se záložkami pro přepínání mezi různými funkcemi
+
+Toto rozhraní umožňuje přirozenou konverzaci s AI modely, přičemž historie konverzace je zachována a uložena do databáze pro budoucí reference.
+
+Nastavení a konfigurace
+Záložka "Nastavení" poskytuje přístup k pokročilým konfiguračním možnostem:
+
+Správa AI modelů a poskytovatelů:
+
+Tlačítko pro vytvoření konfiguračního souboru s API klíči
+
+Seznam dostupných modelů s možností přidání nových
+
+Defaultní nastavení pro LM Studio a Ollama servery
+
+Nastavení autonomie:
+
+Dropdown menu pro výběr ze tří úrovní autonomie
+
+Úroveň 3 umožňuje modelům pracovat zcela samostatně bez potvrzování
+
+Vlastní instrukce pro modely:
+
+Možnost přidat specifické instrukce pro každý model
+
+Nastavení výchozího modelu pro nové konverzace
+
+Přidání více modelů do chatu:
+
+Možnost zapojit více AI modelů do jedné konverzace
+
+Specifikace vlastních instrukcí pro každý model
+
+javascript
+async function loadModels() {
+    try {
+        const response = await fetch('/api/config/models');
+        const models = await response.json();
+        
+        // Vykreslení modelů v nastavení
+        const modelsList = document.getElementById('models-list');
+        modelsList.innerHTML = '';
+        
+        for (const [id, model] of Object.entries(models)) {
+            // Vytvoření HTML elementů pro každý model
+            // ...
+        }
+    } catch (error) {
+        console.error('Chyba při načítání modelů:', error);
+    }
+}
+Systémové nástroje a integrace
+Aplikace poskytuje AI modelům přístup k různým systémovým nástrojům, což jim umožňuje interagovat s počítačem jako běžný uživatel.
+
+Ovládání systému
+Pro ovládání systému jsou implementovány následující nástroje:
+
+Ovládání myši: Pohyb kurzoru, levé a pravé kliknutí
+
+Ovládání klávesnice: Psaní textu, speciální klávesy, klávesové zkratky
+
+Screenshoty: Pořizování snímků obrazovky jako zpětná vazba pro AI
+
+OCR analýza: Extrakce textu z obrázků pro lepší porozumění obsahu obrazovky
+
+Tyto nástroje jsou implementovány pomocí pyautogui a pytesseract knihoven a jsou dostupné přes MCP server.
+
+python
+class ControlPlugin:
+    @hookimpl
+    def control_mouse(self, x, y, action):
+        if action == "move":
+            pyautogui.moveTo(x, y)
+            return {"success": True}
+        elif action == "click":
+            pyautogui.click(x, y)
+            return {"success": True}
+        # Další akce...
+Databázová integrace a Docker správa
+Pro efektivní ukládání dat a správu kontextů jsou implementovány následující funkce:
+
+Automatické vytváření databází: Pro každý projekt nebo konverzační vlákno
+
+Správa Docker kontejnerů: Automatické spouštění a zastavování kontejnerů
+
+Vektorové indexování: Ukládání textu jako vektorových embeddings pro sémantické vyhledávání
+
+Tato funkcionalita zajišťuje, že kontextové okno AI modelu nikdy nebude přeplněno a relevantní informace budou vždy dostupné.
+
+python
+def _store_embedding(self, params):
+    try:
+        conn = self._get_connection()
+        cur = conn.cursor()
+        
+        # Uložení embeddingu do databáze
+        cur.execute(
+            "INSERT INTO embeddings (message_id, embedding) VALUES (%s, %s) RETURNING id;",
+            (params["message_id"], params["embedding"])
+        )
+        # ...
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+Docker Compose konfigurace a nasazení
+Pro snadné nasazení celé aplikace je připraven Docker Compose soubor, který definuje všechny potřebné kontejnery a jejich vzájemné vazby.
+
+Docker Compose konfigurace
+text
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    volumes:
+      - ./data:/app/data
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - mcp_server
+    volumes:
+      - ./data:/app/data
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=longin
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  mcp_server:
+    build:
+      context: ./mcp_server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    privileged: true  # Potřebné pro ovládání myši a klávesnice
+
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=longin
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements,vector"]
+
+volumes:
+  postgres_data:
+Spouštěcí skript pro Windows
+Pro snadné spuštění aplikace na systému Windows je vytvořen batch skript:
+
+text
+@echo off
+echo Spouštění aplikace L.O.N.G.I.N...
+
+REM Kontrola přítomnosti Docker Desktop
+where docker >nul 2>nul
+if %errorlevel% neq 0 (
+    echo Docker Desktop není nainstalován nebo není spuštěn!
+    echo Prosím, nainstalujte Docker Desktop a zkuste to znovu.
+    pause
+    exit /b
+)
+
+REM Spuštění Docker Compose
+echo Spouštění kontejnerů...
+docker-compose up -d
+
+REM Čekání na spuštění služeb
+echo Čekání na spuštění aplikace...
+timeout /t 5 /nobreak >nul
+
+REM Otevření webového prohlížeče
+echo Otevírání aplikace v prohlížeči...
+start http://localhost:8080
+
+echo Aplikace L.O.N.G.I.N. je spuštěna!
+Implementační plán a struktura projektu
+Pro implementaci tohoto návrhu je důležité dodržet strukturovaný přístup a správné rozdělení kódu do modulů a komponent.
+
+Struktura projektu
+text
+L.O.N.G.I.N/
+├── docker-compose.yml       # Docker Compose konfigurace
+├── run.bat                  # Spouštěcí skript pro Windows
+├── frontend/                # Frontend aplikace
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── public/
+│   │   ├── index.html
+│   │   └── assets/
+│   └── src/
+│       ├── components/
+│       ├── styles/
+│       └── api/
+├── backend/                 # Backend aplikace
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── app.py
+│   ├── models/
+│   ├── services/
+│   └── utils/
+├── mcp_server/             # MCP server s pluginy
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── server.py
+│   └── plugins/
+└── data/                   # Sdílená data
+    ├── screenshots/
+    ├── config/
+    └── models/
+Implementační kroky
+Pro realizaci projektu je vhodné postupovat podle následujících kroků:
+
+Vytvoření základní struktury projektu a Docker konfigurací
+
+Implementace MCP serveru a základních pluginů
+
+Vytvoření databázového schématu a připojení k PostgreSQL
+
+Implementace backend služeb pro správu modelů a konverzací
+
+Vytvoření frontend aplikace podle zadaného UI návrhu
+
+Integrace všech komponent a testování
+
+Optimalizace výkonu a oprava chyb
+
+Příprava instalačních a spouštěcích skriptů
+
+
+TODO list pro vývoj aplikace L.O.N.G.I.N.
+Analýza požadavků a návrhu
+1.1 Prostudovat zadání a UI návrh (viz přiložený obrázek)
+1.2 Upřesnit funkce jednotlivých záložek a jejich pořadí
+
+Vytvoření základní adresářové struktury projektu
+2.1 Vytvořit složky: frontend, backend, mcp_server, data, konfigurace, docker-soubory
+
+Nastavení verzovacího systému (např. Git)
+3.1 Inicializovat repozitář
+3.2 Přidat .gitignore pro Python, Node.js, Docker, data
+
+Návrh a implementace databáze
+4.1 Navrhnout schéma pro PostgreSQL (projekty, konverzace, zprávy, embeddings)
+4.2 Přidat podporu pgvector pro vektorové indexování
+4.3 Vytvořit inicializační SQL skripty
+
+Příprava Docker Compose konfigurace
+5.1 Definovat služby: frontend, backend, mcp_server, postgres
+5.2 Nastavit sdílené svazky (volumes) pro data, screenshoty, konfigurace
+5.3 Otestovat základní spuštění všech kontejnerů
+
+Vývoj backendu (Python)
+6.1 Inicializovat Python projekt, vytvořit requirements.txt
+6.2 Implementovat REST API pro:
+- Správu konverzací a zpráv
+- Správu AI modelů a jejich konfigurací
+- Správu projektů a kontextů
+- Práci s embeddings (ukládání, vyhledávání)
+6.3 Připojit backend k PostgreSQL
+6.4 Připravit endpointy pro komunikaci s MCP serverem
+6.5 Implementovat logiku pro správu kontextového okna
+
+Vývoj MCP serveru a pluginů
+7.1 Inicializovat pluggy-based MCP server
+7.2 Implementovat pluginy:
+- Ovládání myši (pohyb, klikání)
+- Ovládání klávesnice
+- Pořizování screenshotů + správu počtu (max 10)
+- OCR analýzu screenshotů
+- Správu Docker kontejnerů
+- Správu PostgreSQL
+7.3 Otestovat komunikaci pluginů s backendem
+
+Vývoj frontend aplikace (JS/HTML/CSS)
+8.1 Vytvořit základní layout podle obrázku (barevné schéma, záložky, okno chatu, vstupní pole)
+8.2 Implementovat ovládací prvky okna (minimalizace, maximalizace, zavření)
+8.3 Implementovat scrollování v chatu i vstupním poli
+8.4 Implementovat přepínání záložek (Chat, Settings)
+8.5 V Settings:
+- Tlačítko pro vytvoření konfiguračního souboru poskytovatelů
+- Dropdown pro výběr stupně autonomie
+- Výpis a výběr dostupných modelů (z API)
+- Tlačítko pro přidání instrukcí k modelu
+- Tlačítko pro přidání nového modelu s vlastními parametry
+
+Integrace AI modelů a poskytovatelů
+9.1 Implementovat správu API klíčů a endpointů (LM Studio, Ollama, další)
+9.2 Implementovat detekci dostupných modelů přes API
+9.3 Zajistit možnost přidání/odebrání modelu v UI i backendu
+
+Správa kontextu a optimalizace práce s databází
+10.1 Implementovat ukládání zpráv po malých částech (chunkování)
+10.2 Implementovat efektivní vyhledávání relevantního kontextu (vektorové vyhledávání)
+10.3 Zajistit, aby nikdy nedošlo k přeplnění kontextového okna modelu
+
+Automatizace práce s Dockerem a databází
+11.1 Implementovat automatické vytváření kontejnerů pro projekty/vlákna
+11.2 Implementovat automatické vytváření a inicializaci databází/tabulek
+
+Správa instrukcí a autonomie modelů
+12.1 Implementovat možnost přidání instrukcí pro konkrétní model
+12.2 Implementovat výběr stupně autonomie a jeho aplikaci na chování modelu
+
+Testování jednotlivých komponent
+13.1 Otestovat backend a API
+13.2 Otestovat MCP server a pluginy
+13.3 Otestovat frontend a jeho interakci s backendem
+13.4 Otestovat celkovou integraci v Docker Compose
+
+Vytvoření spouštěcího skriptu pro Windows
+14.1 Napsat batch skript pro spuštění Docker Compose a otevření aplikace v prohlížeči
+
+Dokumentace a základní uživatelský manuál
+15.1 Popsat instalaci, spuštění, základní workflow a troubleshooting
+
+Základní optimalizace a úklid projektu
+16.1 Odstranit zbytečné závislosti a soubory
+16.2 Ověřit, že všechny kontejnery a data se správně spouští a vypínají s aplikací
+
+Pokud by v návrhu chyběla jakákoliv zásadní část (např. autentizace, zabezpečení API, správa uživatelů), je nutné ji doplnit v dalších iteracích dle potřeby.
+
+Obrázek, který jsi přiložil, přesně odpovídá základnímu návrhu UI pro aplikaci L.O.N.G.I.N. podle předchozího zadání. Struktura je jednoduchá, přehledná a dobře reflektuje požadavky:
+
+Horní část: Název aplikace „L.O.N.G.I.N.“
+
+Střední velké okno: Hlavní oblast pro chat (zobrazení konverzace s AI)
+
+Spodní menší okno: Vstupní pole pro zadávání dotazů nebo příkazů
+
+Pravý panel: Svislý blok čtverců a obdélníků představuje záložky pro další funkce (např. Settings, další moduly)
+
+Barevné schéma (zelená na černé) je výrazné a dobře čitelné, což je vhodné pro technickou aplikaci. Celkově návrh poskytuje jasnou vizuální hierarchii a je snadno rozšiřitelný o další funkce dle zadání.
